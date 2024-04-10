@@ -1,9 +1,9 @@
 # Linux Assignment 3 Part 2
 
-### Continue from Assignment 3 Part 1, read README.md for beginning of the assignmnet
+### Continue from Assignment 3 Part 1, read README.md for part 1
 
 ## Purpose:
-Add a fireware using ufw and a reverse proxy sevrer to a backend. 
+Add a fireware using ufw and a reverse proxy server to a backend. 
 
 >A reverse proxy server is used to "distribute the load among several servers, seamlessly show content from different websites, or pass requests for processing to application servers over protocols other than HTTP" (https://docs.nginx.com/nginx/admin-guide/web-server/reverse-proxy/)
 
@@ -12,7 +12,8 @@ Add a fireware using ufw and a reverse proxy sevrer to a backend.
 ```bash
 sudo pacman -S ufw
 ```
-2. Before enabling the ufw serivce, ensure that ssh is allowed or you will be locked out of the server.
+ > -S is used to install a package with pacman
+2. Before enabling the ufw serivce, **ensure that ssh is allowed** or you will be locked out of the server.
 > Note: by default all incoming connections are denied and all outgoing connections are allowed.
  To allow ssh, run the following command:
 ```bash
@@ -27,7 +28,7 @@ sudo systemctl enable --now ufw.service
 ```
 >Note: --now is used to start the service immediately after enabling it.
 
-4. Also allow http connections and to port 8080 as we will be using a reverse proxy server to connect to the backend server. To allow these connections, run the following command:
+4. Also allow http connections and port 8080 as we will be using them to connect to the backend server. To allow these connections, run the following command:
 ```bash
 sudo ufw allow http
 # or
@@ -39,7 +40,8 @@ sudo ufw allow 8080
 ```bash
 sudo ufw status verbose
 ```
-> Should look something like this:
+
+Should look something like this:
 ```bash
 Status: active
 Logging: on (low)
@@ -57,17 +59,17 @@ To                         Action      From
 80 (v6)                    ALLOW IN    Anywhere (v6)
 "
 ```
-> Note: for port 22(ssh) I have limited the incoming connection. Which is done by using LIMIT. This is done to prevent brute force attacks on the server. 
+> Note: for port 22(ssh) I have limited the incoming connection. Which is done by using LIMIT. This is done to limit the number of incoming connections to the server. 
 >To limit the incoming connections, run the following command:
-```bash
-# example limiting ssh connections
-sudo ufw limit ssh
-```
+>```bash
+># example limiting ssh connections
+>sudo ufw limit ssh
+>```
 
 # Reverse Proxy Server
 ## Adding the Backend
 1. We need to add the provided backend binary file(hello-server) to the server. For this you will need to enter your droplet using sftp. To do this, run the following command:
-> NOTE: cd into the directory where the binary file is located before running the following command.
+> **NOTE: cd into the directory where the binary file is located before running the following command.**
 ```bash
 sftp root@<ip_address>
 # or sftp droplet_name if you have added the droplet to your ssh config file
@@ -76,6 +78,8 @@ sftp root@<ip_address>
 ```bash
 put hello-server
 ```
+>Note: put will upload files from your host to the droplet.
+
 exit sftp and return to your ssh droplet to begin the next steps.
 
 ## Creating a Backend Service
@@ -90,6 +94,7 @@ sudo mv hello-server /usr/local/bin/hello-server
 ```bash
 sudo vim /etc/systemd/system/hello-server.service
 ```
+> **Remember to add the .service extension to the file name.**
 
 3. Add the following to the hello-server.service file:
 ```bash
@@ -109,12 +114,13 @@ WantedBy=multi-user.target
 > - Type: the type of service, in this case, it is a simple service, which is the default type so it is not necessary to add this line.
 > - ExecStart: the command to run the service which is located in the /usr/local/bin directory that we defined in step 1.
 > - restart: this indicates the circumstances under which systemd will attempt to automatically restart the service. In this case, it is always.
-> - WantedBy: the target that the service should be started by. In this case, it is the multi-user target. 
+> - WantedBy: the target that the service should be started by. In this case, it is the multi-user target which means the service can accept connections from multiple users.
 
 4. Reload the systemd daemon to apply the changes made to the service file. To do this, run the following command:
 ```bash
 sudo systemctl daemon-reload
 ```
+> You need to reload the daemon whenever you make changes to the service file to let systemd know that changes have been made.
 
 5. Start the hello-server service by running the following command:
 ```bash
@@ -124,6 +130,7 @@ Also enable the service to start on boot by running the following command:
 ```bash
 sudo systemctl enable hello-server
 ```
+> Systemctl is a systemd utility that is used to manage services. 
 
 6. Check the status of the service by running the following command:
 ```bash
@@ -139,7 +146,7 @@ sudo vim /etc/nginx/sites-available/nginx-2420.conf
 ```
 
 2. Add the following to the configuration file:
-```bash
+```
 server {
     #you should have the listen 80 and server_name localhost from part 1
         listen 80;
@@ -161,11 +168,13 @@ server {
 > Explanation:
 > We have added two locations/routes to the server block. The first location is /hey and the second location is /echo. The inccluded backend routes are running on port 8080. 
 >proxy_pass is used to pass the request
+> When nginx proxies a request, it sends the request to a specified proxied server, fetches the response, and sends it back to the client
 
 3. Test the configuration file for syntax errors by running the following command:
 ```bash
 sudo nginx -t
 ```
+> -t is used to test the configuration file for syntax errors.
 
 4. Once everything looks good, restart the nginx service by running the following command:
 ```bash
